@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
   Textarea,
-} from "../components"
+} from "../shared/ui"
 
 const PostsManager = () => {
   const navigate = useNavigate()
@@ -277,7 +277,7 @@ const PostsManager = () => {
       const data = await response.json()
       setComments((prev) => ({
         ...prev,
-        [postId]: prev[postId].map((comment) => (comment.id === data.id ? {...data, likes: comment.likes + 1} : comment)),
+        [postId]: prev[postId].map((comment) => (comment.id === data.id ? { ...data, likes: comment.likes + 1 } : comment)),
       }))
     } catch (error) {
       console.error("댓글 좋아요 오류:", error)
@@ -365,11 +365,10 @@ const PostsManager = () => {
                   {post.tags?.map((tag) => (
                     <span
                       key={tag}
-                      className={`px-1 text-[9px] font-semibold rounded-[4px] cursor-pointer ${
-                        selectedTag === tag
+                      className={`px-1 text-[9px] font-semibold rounded-[4px] cursor-pointer ${selectedTag === tag
                           ? "text-white bg-blue-500 hover:bg-blue-600"
                           : "text-blue-800 bg-blue-100 hover:bg-blue-200"
-                      }`}
+                        }`}
                       onClick={() => {
                         setSelectedTag(tag)
                         updateURL()
