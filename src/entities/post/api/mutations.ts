@@ -1,10 +1,11 @@
-import type { Post } from "../types"
+// ?: createPost와 updatePost의 파라미터를 통일하고 싶음.
+import type { Post, PostApiRequest } from "../types"
 
-export async function createPost(post: Post) {
+export async function createPost(req: PostApiRequest) {
     const res = await fetch("/api/posts/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(post),
+        body: JSON.stringify(req),
     })
 
     if (!res.ok) {

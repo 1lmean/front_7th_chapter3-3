@@ -1,3 +1,5 @@
+import type { User } from "@/entities/user/types"
+
 export type Post = {
     id: number
     title: string
@@ -5,6 +7,7 @@ export type Post = {
     userId: number
     tags?: string[]
     reactions?: PostReactions
+    author?: User
 }
 
 export type PostReactions = {
