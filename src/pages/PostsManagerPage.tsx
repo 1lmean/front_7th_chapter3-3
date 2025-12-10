@@ -28,8 +28,12 @@ import {
 
 // FSD Entities
 import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
-import { getPostList, getPostListByTag, getPostListBySearch, createPost, updatePost, deletePost, attachAuthorToPosts, type Post } from "@/entities/post"
+import { getPostList, getPostListByTag, getPostListBySearch, updatePost, deletePost, attachAuthorToPosts, type Post } from "@/entities/post"
 import { getCommentsByPost, createComment as createCommentApi, updateComment as updateCommentApi, deleteComment as deleteCommentApi, likeComment as likeCommentApi, type Comment, type CommentCreateRequest } from "@/entities/comment"
+
+// FSD Features
+import { PostCreateDialog } from "@/features/post-create"
+import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
   const navigate = useNavigate()
@@ -45,9 +49,7 @@ const PostsManager = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [sortBy, setSortBy] = useState(queryParams.get("sortBy") || "")
   const [sortOrder, setSortOrder] = useState(queryParams.get("sortOrder") || "asc")
-  const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [newPost, setNewPost] = useState({ title: "", body: "", userId: 1 })
   const [loading, setLoading] = useState(false)
   const [tags, setTags] = useState([])
   const [selectedTag, setSelectedTag] = useState(queryParams.get("tag") || "")
@@ -58,6 +60,9 @@ const PostsManager = () => {
   const [showEditCommentDialog, setShowEditCommentDialog] = useState(false)
   const [showPostDetailDialog, setShowPostDetailDialog] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
+
+  const createPostDialog = useDialog()
+  // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   // URL 업데이트 함수
@@ -145,15 +150,13 @@ const PostsManager = () => {
     }
   }
 
-  // 게시물 추가
-  const addPost = async () => {
-    try {
-      const data = await createPost(newPost)
-      setPosts([data, ...posts])
-      setShowAddDialog(false)
-      setNewPost({ title: "", body: "", userId: 1 })
-    } catch (error) {
-      console.error("게시물 추가 오류:", error)
+  // 게시물 추가 (PostCreateDialog에서 처리)
+  const handlePostCreated = () => {
+    // 게시물 목록 새로고침
+    if (selectedTag) {
+      fetchPostsByTag(selectedTag)
+    } else {
+      fetchPosts()
     }
   }
 
@@ -438,7 +441,7 @@ const PostsManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>게시물 관리자</span>
-          <Button onClick={() => setShowAddDialog(true)}>
+          <Button onClick={() => createPostDialog.openDialog()}>
             <Plus className="w-4 h-4 mr-2" />
             게시물 추가
           </Button>
@@ -534,33 +537,11 @@ const PostsManager = () => {
       </CardContent>
 
       {/* 게시물 추가 대화상자 */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>새 게시물 추가</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="제목"
-              value={newPost.title}
-              onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-            />
-            <Textarea
-              rows={30}
-              placeholder="내용"
-              value={newPost.body}
-              onChange={(e) => setNewPost({ ...newPost, body: e.target.value })}
-            />
-            <Input
-              type="number"
-              placeholder="사용자 ID"
-              value={newPost.userId}
-              onChange={(e) => setNewPost({ ...newPost, userId: Number(e.target.value) })}
-            />
-            <Button onClick={addPost}>게시물 추가</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PostCreateDialog
+        open={createPostDialog.isOpen}
+        onOpenChange={createPostDialog.toggleDialog}
+        onCreated={handlePostCreated}
+      />
 
       {/* 게시물 수정 대화상자 */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
