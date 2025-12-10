@@ -1,0 +1,41 @@
+import type { Post } from "../types"
+
+export async function createPost(post: Post) {
+    const res = await fetch("/api/posts/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(post),
+    })
+
+    if (!res.ok) {
+        throw new Error("게시물 생성 실패")
+    }
+
+    const data = (await res.json()) as Post
+    return data
+}
+
+export async function updatePost(post: Post) {
+    const res = await fetch(`/api/posts/${post.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(post),
+    })
+
+    if (!res.ok) {
+        throw new Error("게시물 업데이트 실패")
+    }
+
+    const data = (await res.json()) as Post
+    return data
+}
+
+export async function deletePost(id: number) {
+    const res = await fetch(`/api/posts/${id}`, {
+        method: "DELETE",
+    })
+
+    if (!res.ok) {
+        throw new Error("게시물 삭제 실패")
+    }
+}
