@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Edit2, MessageSquare, Plus, Search, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react"
+import { Edit2, MessageSquare, Plus, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   Button,
@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -28,13 +27,14 @@ import {
 
 // FSD Entities
 import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
-import { getPostList, getPostListByTag, getPostListBySearch, attachAuthorToPosts, type Post } from "@/entities/post"
+import { getPostList, getPostListByTag, attachAuthorToPosts, type Post } from "@/entities/post"
 import { getCommentsByPost, createComment as createCommentApi, updateComment as updateCommentApi, deleteComment as deleteCommentApi, likeComment as likeCommentApi, type Comment, type CommentCreateRequest } from "@/entities/comment"
 
 // FSD Features
 import { PostCreateDialog } from "@/features/post-create"
 import { PostEditDialog } from "@/features/post-edit"
 import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
+import { PostSearchBar, usePostSearch } from "@/features/post-search"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -47,7 +47,6 @@ const PostsManager = () => {
   const [total, setTotal] = useState(0)
   const [skip, setSkip] = useState(parseInt(queryParams.get("skip") || "0"))
   const [limit, setLimit] = useState(parseInt(queryParams.get("limit") || "10"))
-  const [searchQuery, setSearchQuery] = useState(queryParams.get("search") || "")
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [sortBy, setSortBy] = useState(queryParams.get("sortBy") || "")
   const [sortOrder, setSortOrder] = useState(queryParams.get("sortOrder") || "asc")
@@ -71,6 +70,16 @@ const PostsManager = () => {
       setPosts(posts.filter((post) => post.id !== id))
     },
   })
+
+  // Post search hook
+  const postSearch = usePostSearch({
+    onSuccess: async ({ posts: searchedPosts, total: searchTotal }) => {
+      const usersData = await getUserList()
+      const postsWithUsers = attachAuthorToPosts(searchedPosts, usersData)
+      setPosts(postsWithUsers)
+      setTotal(searchTotal)
+    },
+  })
   // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -79,7 +88,7 @@ const PostsManager = () => {
     const params = new URLSearchParams()
     if (skip) params.set("skip", skip.toString())
     if (limit) params.set("limit", limit.toString())
-    if (searchQuery) params.set("search", searchQuery)
+    if (postSearch.query) params.set("search", postSearch.query)
     if (sortBy) params.set("sortBy", sortBy)
     if (sortOrder) params.set("sortOrder", sortOrder)
     if (selectedTag) params.set("tag", selectedTag)
@@ -116,25 +125,7 @@ const PostsManager = () => {
     }
   }
 
-  // 게시물 검색
-  const searchPosts = async () => {
-    if (!searchQuery) {
-      fetchPosts()
-      return
-    }
-    setLoading(true)
-    try {
-      const data = await getPostListBySearch(searchQuery)
-      const usersData = await getUserList()
-      const postsWithUsers = attachAuthorToPosts(data.posts, usersData)
-      setPosts(postsWithUsers)
-      setTotal(data.total)
-    } catch (error) {
-      console.error("게시물 검색 오류:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   // 태그별 게시물 가져오기
   const fetchPostsByTag = async (tag: string) => {
@@ -281,7 +272,6 @@ const PostsManager = () => {
     const params = new URLSearchParams(location.search)
     setSkip(parseInt(params.get("skip") || "0"))
     setLimit(parseInt(params.get("limit") || "10"))
-    setSearchQuery(params.get("search") || "")
     setSortBy(params.get("sortBy") || "")
     setSortOrder(params.get("sortOrder") || "asc")
     setSelectedTag(params.get("tag") || "")
@@ -320,7 +310,7 @@ const PostsManager = () => {
             <TableCell>{post.id}</TableCell>
             <TableCell>
               <div className="space-y-1">
-                <div>{highlightText(post.title, searchQuery)}</div>
+                <div>{highlightText(post.title, postSearch.query)}</div>
 
                 <div className="flex flex-wrap gap-1">
                   {post.tags?.map((tag) => (
@@ -403,7 +393,7 @@ const PostsManager = () => {
           <div key={comment.id} className="flex items-center justify-between text-sm border-b pb-1">
             <div className="flex items-center space-x-2 overflow-hidden">
               <span className="font-medium truncate">{comment.user.username}:</span>
-              <span className="truncate">{highlightText(comment.body, searchQuery)}</span>
+              <span className="truncate">{highlightText(comment.body, postSearch.query)}</span>
             </div>
             <div className="flex items-center space-x-1">
               <Button variant="ghost" size="sm" onClick={() => likeComment(comment.id, postId)}>
@@ -445,18 +435,12 @@ const PostsManager = () => {
         <div className="flex flex-col gap-4">
           {/* 검색 및 필터 컨트롤 */}
           <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="게시물 검색..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && searchPosts()}
-                />
-              </div>
-            </div>
+            <PostSearchBar
+              query={postSearch.query}
+              onQueryChange={postSearch.setQuery}
+              onSearch={postSearch.handleSearch}
+              isSearching={postSearch.isSearching}
+            />
             <Select
               value={selectedTag}
               onValueChange={(value) => {
@@ -585,10 +569,10 @@ const PostsManager = () => {
       <Dialog open={showPostDetailDialog} onOpenChange={setShowPostDetailDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{selectedPost?.title && highlightText(selectedPost.title, searchQuery)}</DialogTitle>
+            <DialogTitle>{selectedPost?.title && highlightText(selectedPost.title, postSearch.query)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>{selectedPost?.body && highlightText(selectedPost.body, searchQuery)}</p>
+            <p>{selectedPost?.body && highlightText(selectedPost.body, postSearch.query)}</p>
             {selectedPost?.id && renderComments(selectedPost.id)}
           </div>
         </DialogContent>
