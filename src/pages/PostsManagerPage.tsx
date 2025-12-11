@@ -11,24 +11,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Textarea,
 } from "../shared/ui"
 
 // FSD Entities
 import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
 import { getPostList, getPostListByTag, attachAuthorToPosts, type Post } from "@/entities/post"
-import { getCommentsByPost, createComment as createCommentApi, updateComment as updateCommentApi, deleteComment as deleteCommentApi, likeComment as likeCommentApi, type Comment, type CommentCreateRequest } from "@/entities/comment"
+import { getCommentsByPost, type Comment } from "@/entities/comment"
 
 // FSD Features
 import { PostCreateDialog } from "@/features/post-create"
@@ -37,6 +31,10 @@ import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
 import { PostSearchBar, usePostSearch } from "@/features/post-search"
 import { usePostFilter, PostFilterControls } from "@/features/post-filter"
 import { usePostPagination, PostPagination } from "@/features/post-pagination"
+import { CommentCreateDialog } from "@/features/comment-create"
+import { CommentEditDialog } from "@/features/comment-edit"
+import { useCommentDelete } from "@/features/comment-delete"
+import { useCommentLike } from "@/features/comment-like"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -51,7 +49,8 @@ const PostsManager = () => {
   const [loading, setLoading] = useState(false)
   const [comments, setComments] = useState<Record<number, Comment[]>>({})
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null)
-  const [newComment, setNewComment] = useState<CommentCreateRequest>({ body: "", postId: 0, userId: 1 })
+
+  // Dialog states
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false)
   const [showEditCommentDialog, setShowEditCommentDialog] = useState(false)
   const [showPostDetailDialog, setShowPostDetailDialog] = useState(false)
@@ -64,6 +63,26 @@ const PostsManager = () => {
   const { handleDelete: handleDeletePost } = usePostDelete({
     onSuccess: (id) => {
       setPosts(posts.filter((post) => post.id !== id))
+    },
+  })
+
+  // Comment delete hook
+  const { handleDelete: handleDeleteComment } = useCommentDelete({
+    onSuccess: ({ commentId, postId }) => {
+      setComments((prev) => ({
+        ...prev,
+        [postId]: prev[postId].filter((comment) => comment.id !== commentId),
+      }))
+    },
+  })
+
+  // Comment like hook
+  const { handleLike: handleLikeComment } = useCommentLike({
+    onSuccess: ({ postId, comment: updatedComment }) => {
+      setComments((prev) => ({
+        ...prev,
+        [postId]: prev[postId].map((comment) => (comment.id === updatedComment.id ? updatedComment : comment)),
+      }))
     },
   })
 
@@ -180,64 +199,7 @@ const PostsManager = () => {
     }
   }
 
-  // 댓글 추가
-  const addComment = async () => {
-    try {
-      const data = await createCommentApi(newComment)
-      setComments((prev) => ({
-        ...prev,
-        [data.postId]: [...(prev[data.postId] || []), data],
-      }))
-      setShowAddCommentDialog(false)
-      setNewComment({ body: "", postId: 0, userId: 1 })
-    } catch (error) {
-      console.error("댓글 추가 오류:", error)
-    }
-  }
 
-  // 댓글 업데이트
-  const updateComment = async () => {
-    if (!selectedComment) return
-    try {
-      const data = await updateCommentApi(selectedComment.id, { body: selectedComment.body })
-      setComments((prev) => ({
-        ...prev,
-        [data.postId]: prev[data.postId].map((comment) => (comment.id === data.id ? data : comment)),
-      }))
-      setShowEditCommentDialog(false)
-    } catch (error) {
-      console.error("댓글 업데이트 오류:", error)
-    }
-  }
-
-  // 댓글 삭제
-  const deleteComment = async (id: number, postId: number) => {
-    try {
-      await deleteCommentApi(id)
-      setComments((prev) => ({
-        ...prev,
-        [postId]: prev[postId].filter((comment) => comment.id !== id),
-      }))
-    } catch (error) {
-      console.error("댓글 삭제 오류:", error)
-    }
-  }
-
-  // 댓글 좋아요
-  const likeComment = async (id: number, postId: number) => {
-    try {
-      const currentComment = comments[postId].find((c) => c.id === id)
-      if (!currentComment) return
-
-      const data = await likeCommentApi(id, { likes: currentComment.likes + 1 })
-      setComments((prev) => ({
-        ...prev,
-        [postId]: prev[postId].map((comment) => (comment.id === data.id ? data : comment)),
-      }))
-    } catch (error) {
-      console.error("댓글 좋아요 오류:", error)
-    }
-  }
 
   // 게시물 상세 보기
   const openPostDetail = (post: Post) => {
@@ -373,7 +335,6 @@ const PostsManager = () => {
         <Button
           size="sm"
           onClick={() => {
-            setNewComment((prev) => ({ ...prev, postId }))
             setShowAddCommentDialog(true)
           }}
         >
@@ -389,7 +350,7 @@ const PostsManager = () => {
               <span className="truncate">{highlightText(comment.body, postSearch.query)}</span>
             </div>
             <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="sm" onClick={() => likeComment(comment.id, postId)}>
+              <Button variant="ghost" size="sm" onClick={() => handleLikeComment(postId, comment)}>
                 <ThumbsUp className="w-3 h-3" />
                 <span className="ml-1 text-xs">{comment.likes}</span>
               </Button>
@@ -403,7 +364,7 @@ const PostsManager = () => {
               >
                 <Edit2 className="w-3 h-3" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => deleteComment(comment.id, postId)}>
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteComment(comment.id, postId)}>
                 <Trash2 className="w-3 h-3" />
               </Button>
             </div>
@@ -484,38 +445,35 @@ const PostsManager = () => {
       )}
 
       {/* 댓글 추가 대화상자 */}
-      <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>새 댓글 추가</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="댓글 내용"
-              value={newComment.body}
-              onChange={(e) => setNewComment({ ...newComment, body: e.target.value })}
-            />
-            <Button onClick={addComment}>댓글 추가</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedPost && (
+        <CommentCreateDialog
+          open={showAddCommentDialog}
+          onOpenChange={setShowAddCommentDialog}
+          postId={selectedPost.id}
+          defaultUserId={1}
+          onCreated={(newComment) => {
+            setComments((prev) => ({
+              ...prev,
+              [newComment.postId]: [...(prev[newComment.postId] || []), newComment],
+            }))
+          }}
+        />
+      )}
 
       {/* 댓글 수정 대화상자 */}
-      <Dialog open={showEditCommentDialog} onOpenChange={setShowEditCommentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>댓글 수정</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="댓글 내용"
-              value={selectedComment?.body || ""}
-              onChange={(e) => selectedComment && setSelectedComment({ ...selectedComment, body: e.target.value })}
-            />
-            <Button onClick={updateComment}>댓글 업데이트</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CommentEditDialog
+        open={showEditCommentDialog}
+        onOpenChange={setShowEditCommentDialog}
+        comment={selectedComment}
+        onUpdated={(updatedComment) => {
+          setComments((prev) => ({
+            ...prev,
+            [updatedComment.postId]: prev[updatedComment.postId].map((comment) =>
+              comment.id === updatedComment.id ? updatedComment : comment,
+            ),
+          }))
+        }}
+      />
 
       {/* 게시물 상세 보기 대화상자 */}
       <Dialog open={showPostDetailDialog} onOpenChange={setShowPostDetailDialog}>

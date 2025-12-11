@@ -1,6 +1,6 @@
 // src/features/comment-delete/model/useCommentDelete.ts
 import { useState } from "react"
-import { deleteComment } from "@/entities/comment/api/mutations"
+import { deleteComment } from "@/entities/comment/api"
 
 type UseCommentDeleteOptions = {
     onSuccess?: (params: { commentId: number; postId: number }) => void

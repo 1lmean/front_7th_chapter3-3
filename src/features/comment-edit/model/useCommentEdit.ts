@@ -1,7 +1,7 @@
 // src/features/comment-edit/model/useCommentEdit.ts
 import { useEffect, useState } from "react"
 import type { Comment } from "@/entities/comment/types"
-import { updateComment } from "@/entities/comment/api/mutations"
+import { updateComment } from "@/entities/comment/api"
 
 type UseCommentEditOptions = {
     comment: Comment
