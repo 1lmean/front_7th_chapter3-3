@@ -36,6 +36,7 @@ import { PostEditDialog } from "@/features/post-edit"
 import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
 import { PostSearchBar, usePostSearch } from "@/features/post-search"
 import { usePostFilter, PostFilterControls } from "@/features/post-filter"
+import { usePostPagination, PostPagination } from "@/features/post-pagination"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -46,8 +47,6 @@ const PostsManager = () => {
   // 상태 관리
   const [posts, setPosts] = useState<Post[]>([])
   const [total, setTotal] = useState(0)
-  const [skip, setSkip] = useState(parseInt(queryParams.get("skip") || "0"))
-  const [limit, setLimit] = useState(parseInt(queryParams.get("limit") || "10"))
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(false)
   const [comments, setComments] = useState<Record<number, Comment[]>>({})
@@ -78,19 +77,28 @@ const PostsManager = () => {
     },
   })
 
+  // Post filter hook
   const postFilter = usePostFilter({
     initialSortBy: (queryParams.get("sortBy") || "none") as any,
     initialSortOrder: (queryParams.get("sortOrder") || "asc") as any,
     initialTag: queryParams.get("tag") || "",
   })
+
+  // Post pagination hook
+  const pagination = usePostPagination({
+    initialLimit: parseInt(queryParams.get("limit") || "10"),
+    initialSkip: parseInt(queryParams.get("skip") || "0"),
+    total,
+  })
+
   // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   // URL 업데이트 함수
   const updateURL = () => {
     const params = new URLSearchParams()
-    if (skip) params.set("skip", skip.toString())
-    if (limit) params.set("limit", limit.toString())
+    if (pagination.skip) params.set("skip", pagination.skip.toString())
+    if (pagination.limit) params.set("limit", pagination.limit.toString())
     if (postSearch.query) params.set("search", postSearch.query)
     if (postFilter.sortBy) params.set("sortBy", postFilter.sortBy)
     if (postFilter.sortOrder) params.set("sortOrder", postFilter.sortOrder)
@@ -103,7 +111,7 @@ const PostsManager = () => {
     setLoading(true)
     try {
       const [postsData, usersData] = await Promise.all([
-        getPostList({ limit, skip }),
+        getPostList({ limit: pagination.limit, skip: pagination.skip }),
         getUserList(),
       ])
 
@@ -258,13 +266,9 @@ const PostsManager = () => {
       fetchPosts()
     }
     updateURL()
-  }, [skip, limit, postFilter.sortBy, postFilter.sortOrder, postFilter.selectedTag])
+  }, [pagination.skip, pagination.limit, postFilter.sortBy, postFilter.sortOrder, postFilter.selectedTag])
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    setSkip(parseInt(params.get("skip") || "0"))
-    setLimit(parseInt(params.get("limit") || "10"))
-  }, [location.search])
+
 
   // 하이라이트 함수 추가
   const highlightText = (text: string, highlight: string) => {
@@ -449,30 +453,16 @@ const PostsManager = () => {
           {loading ? <div className="flex justify-center p-4">로딩 중...</div> : renderPostTable()}
 
           {/* 페이지네이션 */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span>표시</span>
-              <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="10" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="30">30</SelectItem>
-                </SelectContent>
-              </Select>
-              <span>항목</span>
-            </div>
-            <div className="flex gap-2">
-              <Button disabled={skip === 0} onClick={() => setSkip(Math.max(0, skip - limit))}>
-                이전
-              </Button>
-              <Button disabled={skip + limit >= total} onClick={() => setSkip(skip + limit)}>
-                다음
-              </Button>
-            </div>
-          </div>
+          <PostPagination
+            limit={pagination.limit}
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            canPrev={pagination.canPrev}
+            canNext={pagination.canNext}
+            onChangeLimit={pagination.changeLimit}
+            onPrev={pagination.goPrev}
+            onNext={pagination.goNext}
+          />
         </div>
       </CardContent>
 
