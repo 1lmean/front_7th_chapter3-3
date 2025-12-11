@@ -28,11 +28,12 @@ import {
 
 // FSD Entities
 import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
-import { getPostList, getPostListByTag, getPostListBySearch, updatePost, deletePost, attachAuthorToPosts, type Post } from "@/entities/post"
+import { getPostList, getPostListByTag, getPostListBySearch, deletePost, attachAuthorToPosts, type Post } from "@/entities/post"
 import { getCommentsByPost, createComment as createCommentApi, updateComment as updateCommentApi, deleteComment as deleteCommentApi, likeComment as likeCommentApi, type Comment, type CommentCreateRequest } from "@/entities/comment"
 
 // FSD Features
 import { PostCreateDialog } from "@/features/post-create"
+import { PostEditDialog } from "@/features/post-edit"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -49,7 +50,6 @@ const PostsManager = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [sortBy, setSortBy] = useState(queryParams.get("sortBy") || "")
   const [sortOrder, setSortOrder] = useState(queryParams.get("sortOrder") || "asc")
-  const [showEditDialog, setShowEditDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const [tags, setTags] = useState([])
   const [selectedTag, setSelectedTag] = useState(queryParams.get("tag") || "")
@@ -62,6 +62,7 @@ const PostsManager = () => {
   const [showUserModal, setShowUserModal] = useState(false)
 
   const createPostDialog = useDialog()
+  const editPostDialog = useDialog()
   // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -160,16 +161,9 @@ const PostsManager = () => {
     }
   }
 
-  // 게시물 업데이트
-  const handleUpdatePost = async () => {
-    if (!selectedPost) return
-    try {
-      const data = await updatePost(selectedPost)
-      setPosts(posts.map((post) => (post.id === data.id ? data : post)))
-      setShowEditDialog(false)
-    } catch (error) {
-      console.error("게시물 업데이트 오류:", error)
-    }
+  // 게시물 업데이트 (PostEditDialog에서 처리)
+  const handlePostUpdated = (updated: Post) => {
+    setPosts(posts.map((post) => (post.id === updated.id ? updated : post)))
   }
 
   // 게시물 삭제
@@ -372,7 +366,7 @@ const PostsManager = () => {
                   size="sm"
                   onClick={() => {
                     setSelectedPost(post)
-                    setShowEditDialog(true)
+                    editPostDialog.openDialog()
                   }}
                 >
                   <Edit2 className="w-4 h-4" />
@@ -544,27 +538,14 @@ const PostsManager = () => {
       />
 
       {/* 게시물 수정 대화상자 */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>게시물 수정</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="제목"
-              value={selectedPost?.title || ""}
-              onChange={(e) => selectedPost && setSelectedPost({ ...selectedPost, title: e.target.value })}
-            />
-            <Textarea
-              rows={15}
-              placeholder="내용"
-              value={selectedPost?.body || ""}
-              onChange={(e) => selectedPost && setSelectedPost({ ...selectedPost, body: e.target.value })}
-            />
-            <Button onClick={handleUpdatePost}>게시물 업데이트</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedPost && (
+        <PostEditDialog
+          open={editPostDialog.isOpen}
+          onOpenChange={editPostDialog.toggleDialog}
+          post={selectedPost}
+          onUpdated={handlePostUpdated}
+        />
+      )}
 
       {/* 댓글 추가 대화상자 */}
       <Dialog open={showAddCommentDialog} onOpenChange={setShowAddCommentDialog}>
