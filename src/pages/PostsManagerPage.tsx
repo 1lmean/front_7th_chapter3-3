@@ -20,7 +20,7 @@ import {
 } from "../shared/ui"
 
 // FSD Entities
-import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
+import { getUserList, UserBadge } from "@/entities/user"
 import { getPostList, getPostListByTag, attachAuthorToPosts, type Post } from "@/entities/post"
 import { getCommentsByPost, type Comment } from "@/entities/comment"
 
@@ -36,6 +36,8 @@ import { CommentEditDialog } from "@/features/comment-edit"
 import { useCommentDelete } from "@/features/comment-delete"
 import { useCommentLike } from "@/features/comment-like"
 import { useDialog } from "@/shared/lib/useDialog"
+import { useUserDetail } from "@/features/user-detail"
+import { UserDetailDialog } from "@/features/user-detail/ui/UserDetailDialog"
 
 const PostsManager = () => {
   const navigate = useNavigate()
@@ -54,10 +56,11 @@ const PostsManager = () => {
   const [showAddCommentDialog, setShowAddCommentDialog] = useState(false)
   const [showEditCommentDialog, setShowEditCommentDialog] = useState(false)
   const [showPostDetailDialog, setShowPostDetailDialog] = useState(false)
-  const [showUserModal, setShowUserModal] = useState(false)
 
   const createPostDialog = useDialog()
   const editPostDialog = useDialog()
+
+  const userDetail = useUserDetail()
 
   // Post delete hook
   const { handleDelete: handleDeletePost } = usePostDelete({
@@ -110,9 +113,6 @@ const PostsManager = () => {
     total,
   })
 
-  // Refs
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-
   // URL 업데이트 함수
   const updateURL = () => {
     const params = new URLSearchParams()
@@ -143,9 +143,6 @@ const PostsManager = () => {
       setLoading(false)
     }
   }
-
-
-
 
 
   // 태그별 게시물 가져오기
@@ -208,16 +205,7 @@ const PostsManager = () => {
     setShowPostDetailDialog(true)
   }
 
-  // 사용자 모달 열기
-  const openUserModal = async (user: User) => {
-    try {
-      const userData = await getUserDetail(user.id)
-      setSelectedUser(userData)
-      setShowUserModal(true)
-    } catch (error) {
-      console.error("사용자 정보 가져오기 오류:", error)
-    }
-  }
+
 
 
 
@@ -288,7 +276,7 @@ const PostsManager = () => {
             </TableCell>
             <TableCell>
               {post.author && (
-                <div className="cursor-pointer" onClick={() => openUserModal(post.author!)}>
+                <div className="cursor-pointer" onClick={() => userDetail.open(post.author!.id)}>
                   <UserBadge user={post.author} />
                 </div>
               )}
@@ -489,38 +477,11 @@ const PostsManager = () => {
       </Dialog>
 
       {/* 사용자 모달 */}
-      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>사용자 정보</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <img src={selectedUser?.image} alt={selectedUser?.username} className="w-24 h-24 rounded-full mx-auto" />
-            <h3 className="text-xl font-semibold text-center">{selectedUser?.username}</h3>
-            <div className="space-y-2">
-              <p>
-                <strong>이름:</strong> {selectedUser?.firstName} {selectedUser?.lastName}
-              </p>
-              <p>
-                <strong>나이:</strong> {selectedUser?.age}
-              </p>
-              <p>
-                <strong>이메일:</strong> {selectedUser?.email}
-              </p>
-              <p>
-                <strong>전화번호:</strong> {selectedUser?.phone}
-              </p>
-              <p>
-                <strong>주소:</strong> {selectedUser?.address?.address}, {selectedUser?.address?.city},{" "}
-                {selectedUser?.address?.state}
-              </p>
-              <p>
-                <strong>직장:</strong> {selectedUser?.company?.name} - {selectedUser?.company?.title}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <UserDetailDialog
+        isOpen={userDetail.isOpen}
+        onOpenChange={userDetail.close}
+        user={userDetail.user}
+      />
     </Card>
   )
 }
