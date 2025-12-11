@@ -28,12 +28,13 @@ import {
 
 // FSD Entities
 import { getUserList, getUserDetail, UserBadge, type User } from "@/entities/user"
-import { getPostList, getPostListByTag, getPostListBySearch, deletePost, attachAuthorToPosts, type Post } from "@/entities/post"
+import { getPostList, getPostListByTag, getPostListBySearch, attachAuthorToPosts, type Post } from "@/entities/post"
 import { getCommentsByPost, createComment as createCommentApi, updateComment as updateCommentApi, deleteComment as deleteCommentApi, likeComment as likeCommentApi, type Comment, type CommentCreateRequest } from "@/entities/comment"
 
 // FSD Features
 import { PostCreateDialog } from "@/features/post-create"
 import { PostEditDialog } from "@/features/post-edit"
+import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -63,6 +64,13 @@ const PostsManager = () => {
 
   const createPostDialog = useDialog()
   const editPostDialog = useDialog()
+
+  // Post delete hook
+  const { handleDelete: handleDeletePost } = usePostDelete({
+    onSuccess: (id) => {
+      setPosts(posts.filter((post) => post.id !== id))
+    },
+  })
   // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -166,15 +174,7 @@ const PostsManager = () => {
     setPosts(posts.map((post) => (post.id === updated.id ? updated : post)))
   }
 
-  // 게시물 삭제
-  const handleDeletePost = async (id: number) => {
-    try {
-      await deletePost(id)
-      setPosts(posts.filter((post) => post.id !== id))
-    } catch (error) {
-      console.error("게시물 삭제 오류:", error)
-    }
-  }
+
 
   // 댓글 가져오기
   const fetchComments = async (postId: number) => {
