@@ -32,3 +32,14 @@ export async function getPostListBySearch(query: string) {
     const data = (await res.json()) as PostApiResponse
     return data
 }
+
+export async function getPostTags() {
+    const res = await fetch("/api/posts/tags")
+
+    if (!res.ok) {
+        throw new Error("태그 목록 가져오기 실패")
+    }
+
+    const data = (await res.json()) as import("../types").PostTag[]
+    return data
+}

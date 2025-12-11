@@ -20,6 +20,9 @@ export type PostTag = {
     url: string
 }
 
+export type PostSortBy = "none" | "id" | "title" | "reactions"
+export type SortOrder = "asc" | "desc"
+
 export type PostApiRequest = {
     title: string
     body: string

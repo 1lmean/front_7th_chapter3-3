@@ -35,6 +35,7 @@ import { PostCreateDialog } from "@/features/post-create"
 import { PostEditDialog } from "@/features/post-edit"
 import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
 import { PostSearchBar, usePostSearch } from "@/features/post-search"
+import { usePostFilter, PostFilterControls } from "@/features/post-filter"
 import { useDialog } from "@/shared/lib/useDialog"
 
 const PostsManager = () => {
@@ -48,11 +49,7 @@ const PostsManager = () => {
   const [skip, setSkip] = useState(parseInt(queryParams.get("skip") || "0"))
   const [limit, setLimit] = useState(parseInt(queryParams.get("limit") || "10"))
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
-  const [sortBy, setSortBy] = useState(queryParams.get("sortBy") || "")
-  const [sortOrder, setSortOrder] = useState(queryParams.get("sortOrder") || "asc")
   const [loading, setLoading] = useState(false)
-  const [tags, setTags] = useState([])
-  const [selectedTag, setSelectedTag] = useState(queryParams.get("tag") || "")
   const [comments, setComments] = useState<Record<number, Comment[]>>({})
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null)
   const [newComment, setNewComment] = useState<CommentCreateRequest>({ body: "", postId: 0, userId: 1 })
@@ -80,6 +77,12 @@ const PostsManager = () => {
       setTotal(searchTotal)
     },
   })
+
+  const postFilter = usePostFilter({
+    initialSortBy: (queryParams.get("sortBy") || "none") as any,
+    initialSortOrder: (queryParams.get("sortOrder") || "asc") as any,
+    initialTag: queryParams.get("tag") || "",
+  })
   // Refs
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -89,9 +92,9 @@ const PostsManager = () => {
     if (skip) params.set("skip", skip.toString())
     if (limit) params.set("limit", limit.toString())
     if (postSearch.query) params.set("search", postSearch.query)
-    if (sortBy) params.set("sortBy", sortBy)
-    if (sortOrder) params.set("sortOrder", sortOrder)
-    if (selectedTag) params.set("tag", selectedTag)
+    if (postFilter.sortBy) params.set("sortBy", postFilter.sortBy)
+    if (postFilter.sortOrder) params.set("sortOrder", postFilter.sortOrder)
+    if (postFilter.selectedTag) params.set("tag", postFilter.selectedTag)
     navigate(`?${params.toString()}`)
   }
 
@@ -114,16 +117,7 @@ const PostsManager = () => {
     }
   }
 
-  // 태그 가져오기
-  const fetchTags = async () => {
-    try {
-      const response = await fetch("/api/posts/tags")
-      const data = await response.json()
-      setTags(data)
-    } catch (error) {
-      console.error("태그 가져오기 오류:", error)
-    }
-  }
+
 
 
 
@@ -153,8 +147,8 @@ const PostsManager = () => {
   // 게시물 추가 (PostCreateDialog에서 처리)
   const handlePostCreated = () => {
     // 게시물 목록 새로고침
-    if (selectedTag) {
-      fetchPostsByTag(selectedTag)
+    if (postFilter.selectedTag) {
+      fetchPostsByTag(postFilter.selectedTag)
     } else {
       fetchPosts()
     }
@@ -255,26 +249,21 @@ const PostsManager = () => {
     }
   }
 
-  useEffect(() => {
-    fetchTags()
-  }, [])
+
 
   useEffect(() => {
-    if (selectedTag) {
-      fetchPostsByTag(selectedTag)
+    if (postFilter.selectedTag) {
+      fetchPostsByTag(postFilter.selectedTag)
     } else {
       fetchPosts()
     }
     updateURL()
-  }, [skip, limit, sortBy, sortOrder, selectedTag])
+  }, [skip, limit, postFilter.sortBy, postFilter.sortOrder, postFilter.selectedTag])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     setSkip(parseInt(params.get("skip") || "0"))
     setLimit(parseInt(params.get("limit") || "10"))
-    setSortBy(params.get("sortBy") || "")
-    setSortOrder(params.get("sortOrder") || "asc")
-    setSelectedTag(params.get("tag") || "")
   }, [location.search])
 
   // 하이라이트 함수 추가
@@ -316,12 +305,12 @@ const PostsManager = () => {
                   {post.tags?.map((tag) => (
                     <span
                       key={tag}
-                      className={`px-1 text-[9px] font-semibold rounded-[4px] cursor-pointer ${selectedTag === tag
+                      className={`px-1 text-[9px] font-semibold rounded-[4px] cursor-pointer ${postFilter.selectedTag === tag
                         ? "text-white bg-blue-500 hover:bg-blue-600"
                         : "text-blue-800 bg-blue-100 hover:bg-blue-200"
                         }`}
                       onClick={() => {
-                        setSelectedTag(tag)
+                        postFilter.setSelectedTag(tag)
                         updateURL()
                       }}
                     >
@@ -441,46 +430,19 @@ const PostsManager = () => {
               onSearch={postSearch.handleSearch}
               isSearching={postSearch.isSearching}
             />
-            <Select
-              value={selectedTag}
-              onValueChange={(value) => {
-                setSelectedTag(value)
-                fetchPostsByTag(value)
+            <PostFilterControls
+              tags={postFilter.tags}
+              selectedTag={postFilter.selectedTag}
+              sortBy={postFilter.sortBy}
+              sortOrder={postFilter.sortOrder}
+              onTagChange={(tag) => {
+                postFilter.setSelectedTag(tag)
+                fetchPostsByTag(tag)
                 updateURL()
               }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="태그 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 태그</SelectItem>
-                {tags.map((tag) => (
-                  <SelectItem key={tag.url} value={tag.slug}>
-                    {tag.slug}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="정렬 기준" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">없음</SelectItem>
-                <SelectItem value="id">ID</SelectItem>
-                <SelectItem value="title">제목</SelectItem>
-                <SelectItem value="reactions">반응</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="정렬 순서" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="asc">오름차순</SelectItem>
-                <SelectItem value="desc">내림차순</SelectItem>
-              </SelectContent>
-            </Select>
+              onSortByChange={postFilter.setSortBy}
+              onSortOrderChange={postFilter.setSortOrder}
+            />
           </div>
 
           {/* 게시물 테이블 */}
