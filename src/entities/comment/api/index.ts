@@ -1,3 +1,3 @@
 // entities/comment/api/index.ts
-export * from './mutation'
+export * from './mutations'
 export * from './queries'
