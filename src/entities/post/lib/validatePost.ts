@@ -1,11 +1,12 @@
 // src/entities/post/model/validate.ts
 import type { Post } from "../types"
+type ValidatablePost = Pick<Post, "title" | "body">
 
 export type ValidatePostResult =
     | { ok: true }
     | { ok: false; reason: "TITLE_REQUIRED" | "TITLE_TOO_LONG" | "BODY_REQUIRED" }
 
-export function validatePost(post: Post): ValidatePostResult {
+export function validatePost(post: ValidatablePost): ValidatePostResult {
     if (!post.title.trim()) {
         return { ok: false, reason: "TITLE_REQUIRED" }
     }

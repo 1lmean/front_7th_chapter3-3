@@ -1,28 +1,26 @@
-import { useState } from "react"
-import type { Post, PostApiRequest } from "@/entities/post/types"
-import { createPost } from "@/entities/post/api/mutations"
+import { useState, useEffect } from "react"
+import type { Post } from "@/entities/post/types"
+import { updatePost } from "@/entities/post/api/mutations"
 import { validatePost } from "@/entities/post/lib/validatePost"
 
-type UsePostCreateOptions = {
-    defaultUserId: number
-    onSuccess: (post: Post) => void
+type UsePostEditOptions = {
+    post: Post
+    onSuccess: (updated: Post) => void
 }
 
-export function usePostCreate(options?: UsePostCreateOptions) {
-    const { defaultUserId = 1, onSuccess } = options || {}
-
-    const [form, setForm] = useState<PostApiRequest>({
-        title: "",
-        body: "",
-        userId: defaultUserId,
-    })
-
+export function usePostEdit({ post, onSuccess }: UsePostEditOptions) {
+    const [form, setForm] = useState<Post>(post)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    useEffect(() => {
+        setForm(post)
+        setError(null)
+    }, [post])
+
     const setField =
-        <K extends keyof PostApiRequest>(key: K) =>
-            (value: PostApiRequest[K]) => {
+        <K extends keyof Post>(key: K) =>
+            (value: Post[K]) => {
                 setForm((prev) => ({
                     ...prev,
                     [key]: value,
@@ -30,11 +28,7 @@ export function usePostCreate(options?: UsePostCreateOptions) {
             }
 
     const resetForm = () => {
-        setForm({
-            title: "",
-            body: "",
-            userId: defaultUserId,
-        })
+        setForm(post)
         setError(null)
     }
 
@@ -59,11 +53,10 @@ export function usePostCreate(options?: UsePostCreateOptions) {
         setError(null)
 
         try {
-            const created = await createPost(form)
-            onSuccess?.(created)
-            resetForm()
+            const updated = await updatePost(form)
+            onSuccess(updated)
         } catch (e) {
-            setError(e instanceof Error ? e.message : "게시물 생성 중 오류가 발생했습니다.")
+            setError(e instanceof Error ? e.message : "게시물 수정 중 오류가 발생했습니다.")
         } finally {
             setIsSubmitting(false)
         }
