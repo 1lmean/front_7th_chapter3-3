@@ -11,7 +11,7 @@ import {
 
 // FSD Entities
 import { getUserList } from "@/entities/user"
-import { getPostList, getPostListByTag, attachAuthorToPosts, type Post } from "@/entities/post"
+import { getPostList, getPostListByTag, attachAuthorToPosts, sortPostList, type Post } from "@/entities/post"
 
 // FSD Features
 import { PostCreateDialog } from "@/features/post-create"
@@ -20,8 +20,6 @@ import { usePostDelete } from "@/features/post-delete/model/usePostDelete"
 import { PostSearchBar, usePostSearch } from "@/features/post-search"
 import { usePostFilter, PostFilterControls } from "@/features/post-filter"
 import { usePostPagination, PostPagination } from "@/features/post-pagination"
-import { CommentCreateDialog } from "@/features/comment-create"
-import { CommentEditDialog } from "@/features/comment-edit"
 import { useDialog } from "@/shared/lib/useDialog"
 import { useUserDetail } from "@/features/user-detail"
 import { UserDetailDialog } from "@/features/user-detail/ui/UserDetailDialog"
@@ -59,7 +57,14 @@ const PostsManager = () => {
   const postSearch = usePostSearch({
     onSuccess: async ({ posts: searchedPosts, total: searchTotal }) => {
       const usersData = await getUserList()
-      const postsWithUsers = attachAuthorToPosts(searchedPosts, usersData)
+      let postsWithUsers = attachAuthorToPosts(searchedPosts, usersData)
+
+      postsWithUsers = sortPostList(
+        postsWithUsers,
+        postFilter.sortBy,
+        postFilter.sortOrder,
+      )
+
       setPosts(postsWithUsers)
       setTotal(searchTotal)
     },
@@ -100,7 +105,14 @@ const PostsManager = () => {
         getUserList(),
       ])
 
-      const postsWithUsers = attachAuthorToPosts(postsData.posts, usersData)
+      let postsWithUsers = attachAuthorToPosts(postsData.posts, usersData)
+
+      postsWithUsers = sortPostList(
+        postsWithUsers,
+        postFilter.sortBy,
+        postFilter.sortOrder,
+      )
+
       setPosts(postsWithUsers)
       setTotal(postsData.total)
     } catch (error) {
@@ -110,10 +122,11 @@ const PostsManager = () => {
     }
   }
 
+
   // 태그별 게시물 가져오기
   const fetchPostsByTag = async (tag: string) => {
     if (!tag || tag === "all") {
-      fetchPosts()
+      await fetchPosts()
       return
     }
     setLoading(true)
@@ -123,7 +136,14 @@ const PostsManager = () => {
         getUserList(),
       ])
 
-      const postsWithUsers = attachAuthorToPosts(postsData.posts, usersData)
+      let postsWithUsers = attachAuthorToPosts(postsData.posts, usersData)
+
+      postsWithUsers = sortPostList(
+        postsWithUsers,
+        postFilter.sortBy,
+        postFilter.sortOrder,
+      )
+
       setPosts(postsWithUsers)
       setTotal(postsData.total)
     } catch (error) {
@@ -132,6 +152,7 @@ const PostsManager = () => {
       setLoading(false)
     }
   }
+
 
   // 게시물 추가 (PostCreateDialog에서 처리)
   const handlePostCreated = () => {
