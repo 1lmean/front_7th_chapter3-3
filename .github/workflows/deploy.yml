@@ -28,7 +28,7 @@ jobs:
 
       # 404.html 생성 (index.advanced.html 복사) - SPA 라우팅 지원
       - name: Create 404.html for SPA routing
-        run: cp dist/index.advanced.html dist/404.html
+        run: cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
