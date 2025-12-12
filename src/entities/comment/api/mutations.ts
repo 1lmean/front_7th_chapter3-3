@@ -5,9 +5,10 @@ import type {
     CommentLikeRequest,
     CommentApiErrorResponse,
 } from "../types"
+import { API_BASE_URL } from "@/shared/api/config";
 
 export async function createComment(req: CommentCreateRequest) {
-    const res = await fetch("/api/comments/add", {
+    const res = await fetch(`${API_BASE_URL}/comments/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
@@ -26,7 +27,7 @@ export async function createComment(req: CommentCreateRequest) {
 }
 
 export async function updateComment(id: number, req: CommentUpdateRequest) {
-    const res = await fetch(`/api/comments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/comments/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
@@ -45,7 +46,7 @@ export async function updateComment(id: number, req: CommentUpdateRequest) {
 }
 
 export async function deleteComment(id: number) {
-    const res = await fetch(`/api/comments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/comments/${id}`, {
         method: "DELETE",
     })
 
@@ -59,7 +60,7 @@ export async function deleteComment(id: number) {
 }
 
 export async function likeComment(id: number, req: CommentLikeRequest) {
-    const res = await fetch(`/api/comments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/comments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),

@@ -1,7 +1,8 @@
 import type { PostApiResponse } from "../types";
+import { API_BASE_URL } from "@/shared/api/config";
 
 export async function getPostList(params: { limit: number; skip: number }) {
-    const res = await fetch(`/api/posts?limit=${params.limit}&skip=${params.skip}`)
+    const res = await fetch(`${API_BASE_URL}/posts?limit=${params.limit}&skip=${params.skip}`)
 
     if (!res.ok) {
         throw new Error("게시물 목록 가져오기 실패")
@@ -12,7 +13,7 @@ export async function getPostList(params: { limit: number; skip: number }) {
 }
 
 export async function getPostListByTag(tag: string) {
-    const res = await fetch(`/api/posts/tag/${tag}`)
+    const res = await fetch(`${API_BASE_URL}/posts/tag/${tag}`)
 
     if (!res.ok) {
         throw new Error("태그별 게시물 가져오기 실패")
@@ -23,7 +24,7 @@ export async function getPostListByTag(tag: string) {
 }
 
 export async function getPostListBySearch(query: string) {
-    const res = await fetch(`/api/posts/search?q=${encodeURIComponent(query)}`)
+    const res = await fetch(`${API_BASE_URL}/posts/search?q=${encodeURIComponent(query)}`)
 
     if (!res.ok) {
         throw new Error("게시물 검색 실패")
@@ -34,7 +35,7 @@ export async function getPostListBySearch(query: string) {
 }
 
 export async function getPostTags() {
-    const res = await fetch("/api/posts/tags")
+    const res = await fetch(`${API_BASE_URL}/posts/tags`)
 
     if (!res.ok) {
         throw new Error("태그 목록 가져오기 실패")

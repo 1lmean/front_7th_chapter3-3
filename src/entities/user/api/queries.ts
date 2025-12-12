@@ -1,7 +1,8 @@
 import type { User, UserListApiResponse, UserApiErrorResponse } from "../types"
+import { API_BASE_URL } from "@/shared/api/config";
 
 export async function getUserList() {
-    const res = await fetch("/api/users?limit=0&select=username,image")
+    const res = await fetch(`${API_BASE_URL}/users?limit=0&select=username,image`)
 
     if (!res.ok) {
         const error: UserApiErrorResponse = {
@@ -16,7 +17,7 @@ export async function getUserList() {
 }
 
 export async function getUserDetail(id: number) {
-    const res = await fetch(`/api/users/${id}`)
+    const res = await fetch(`${API_BASE_URL}/users/${id}`)
 
     if (!res.ok) {
         const error: UserApiErrorResponse = {

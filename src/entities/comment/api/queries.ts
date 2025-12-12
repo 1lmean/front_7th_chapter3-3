@@ -1,7 +1,8 @@
 import type { CommentListResponse, CommentApiErrorResponse } from "../types"
+import { API_BASE_URL } from "@/shared/api/config";
 
 export async function getCommentsByPost(postId: number) {
-    const res = await fetch(`/api/comments/post/${postId}`)
+    const res = await fetch(`${API_BASE_URL}/comments/post/${postId}`)
 
     if (!res.ok) {
         const error: CommentApiErrorResponse = {

@@ -1,8 +1,9 @@
 // ?: createPost와 updatePost의 파라미터를 통일하고 싶음.
 import type { Post, PostApiRequest } from "../types"
+import { API_BASE_URL } from "@/shared/api/config";
 
 export async function createPost(req: PostApiRequest) {
-    const res = await fetch("/api/posts/add", {
+    const res = await fetch(`${API_BASE_URL}/posts/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
@@ -17,7 +18,7 @@ export async function createPost(req: PostApiRequest) {
 }
 
 export async function updatePost(post: Post) {
-    const res = await fetch(`/api/posts/${post.id}`, {
+    const res = await fetch(`${API_BASE_URL}/posts/${post.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(post),
@@ -32,7 +33,7 @@ export async function updatePost(post: Post) {
 }
 
 export async function deletePost(id: number) {
-    const res = await fetch(`/api/posts/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/posts/${id}`, {
         method: "DELETE",
     })
 
